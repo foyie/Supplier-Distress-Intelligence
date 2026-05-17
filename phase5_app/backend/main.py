@@ -31,10 +31,26 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "phase1_data"))
+load_dotenv()
+
+# ─────────────────────────────────────────────────────────
+# Fix paths: work from any directory (root or phase5_app/backend)
+# ─────────────────────────────────────────────────────────
+BACKEND_DIR   = os.path.dirname(os.path.abspath(__file__))
+PHASE5_DIR    = os.path.dirname(BACKEND_DIR)
+PROJECT_ROOT  = os.path.dirname(PHASE5_DIR)
+
+# If we're running from phase5_app/backend, BASE_DIR is 2 levels up
+# If we're running from root with: cd phase5_app/backend && uvicorn, same thing
+BASE_DIR      = PROJECT_ROOT
+
+sys.path.insert(0, os.path.join(BASE_DIR, "phase1_data"))
 from db_schema import get_engine, Company, MonthlySignal
 
-load_dotenv()
+MODELS_DIR    = os.path.join(BASE_DIR, "models")
+PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed")
+FORECAST_DIR  = os.path.join(BASE_DIR, "data", "forecasts")
+PLOTS_DIR     = os.path.join(BASE_DIR, "data", "plots")
 
 # ─────────────────────────────────────────────────────────
 # App setup
@@ -51,15 +67,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# ─────────────────────────────────────────────────────────
-# Model + data loading (lazy, cached on first request)
-# ─────────────────────────────────────────────────────────
-BASE_DIR      = os.path.join(os.path.dirname(__file__), "..", "..")
-MODELS_DIR    = os.path.join(BASE_DIR, "models")
-PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed")
-FORECAST_DIR  = os.path.join(BASE_DIR, "data", "forecasts")
-PLOTS_DIR     = os.path.join(BASE_DIR, "data", "plots")
 
 _xgb_model    = None
 _feature_cols = None

@@ -248,15 +248,25 @@ def collect_jobs(session: Session, companies: list):
             jobs = asyncio.run(scrape_job_postings(company.name))
             stats = classify_job_roles(jobs)
             today = date.today()
+
+            # Guard: bankrupt/defunct companies may return 0 jobs → pct fields are None
+            if stats["total"] == 0:
+                print(f"    ⚠ 0 jobs found (company may be defunct) — skipping DB write")
+                time.sleep(random.uniform(3, 6))
+                continue
+
             snapshot = pd.DataFrame([{
-                "year":           today.year,
-                "month":          today.month,
-                "total":          stats["total"],
+                "year":            today.year,
+                "month":           today.month,
+                "total":           stats["total"],
                 "pct_ops_finance": stats["pct_ops_finance"],
-                "pct_senior":     stats["pct_senior"],
+                "pct_senior":      stats["pct_senior"],
             }])
             upsert_linkedin_signals(session, company.id, snapshot)
-            print(f"    ✅ {stats['total']} jobs | {stats['pct_ops_finance']:.0%} ops/finance")
+
+            # Safe formatting: pct_ops_finance is guaranteed non-None here (total > 0)
+            ops_pct = stats["pct_ops_finance"] or 0
+            print(f"    ✅ {stats['total']} jobs | {ops_pct:.0%} ops/finance")
         except Exception as e:
             print(f"    ⚠ Error: {e}")
         time.sleep(random.uniform(3, 6))
