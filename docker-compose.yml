@@ -1,0 +1,59 @@
+version: '3.9'
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB:       supplier_distress
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── FastAPI backend ─────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: phase5_app/backend/Dockerfile
+    working_dir: /app/phase5_app/backend
+    volumes:
+      - .:/app                    # mount whole project so models/ and data/ are accessible
+    environment:
+      DB_HOST:     db
+      DB_PORT:     5432
+      DB_NAME:     supplier_distress
+      DB_USER:     postgres
+      DB_PASSWORD: postgres
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # ── MLflow ─────────────────────────────────────────────
+  mlflow:
+    image: python:3.11-slim
+    command: >
+      bash -c "pip install mlflow -q &&
+               mlflow server --host 0.0.0.0 --port 5000
+               --backend-store-uri sqlite:///mlflow.db
+               --default-artifact-root /mlflow-artifacts"
+    volumes:
+      - mlflow_data:/mlflow-artifacts
+    ports:
+      - "5000:5000"
+
+volumes:
+  pgdata:
+  mlflow_data:

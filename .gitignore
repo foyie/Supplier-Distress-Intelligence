@@ -1,0 +1,113 @@
+# =========================
+# ENV FILES
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# PYTHON
+# =========================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+
+.venv/
+venv/
+env/
+
+# Jupyter / notebooks (if used later)
+.ipynb_checkpoints/
+
+# =========================
+# DATA PIPELINE OUTPUTS (IMPORTANT FOR YOUR PROJECT)
+# =========================
+data/processed/
+data/forecasts/
+
+# Raw / intermediate data (optional but recommended)
+data/raw/
+data/intermediate/
+
+# =========================
+# ML MODELS / ARTIFACTS
+# =========================
+models/*.json
+models/*.pkl
+models/*.joblib
+models/*.h5
+
+# Keep structure but ignore large artifacts
+!models/.gitkeep
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# =========================
+# NODE / FRONTEND (React + Vite)
+# =========================
+node_modules/
+dist/
+build/
+
+# Vite cache
+.vite/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# =========================
+# FASTAPI / BACKEND
+# =========================
+backend/__pycache__/
+
+# =========================
+# DATABASE / POSTGRES
+# =========================
+*.sqlite
+*.db
+
+# local Postgres data (if ever mounted)
+pgdata/
+
+# =========================
+# DOCKER
+# =========================
+*.pid
+docker-compose.override.yml
+
+# =========================
+# OS FILES
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# IDEs
+# =========================
+.vscode/
+.idea/
+
+# =========================
+# SCRAPING / CRAWLERS (optional safety)
+# =========================
+*.har
+playwright-report/
+test-results/
+
+# =========================
+# SEC / NEWS / LINKEDIN PIPELINE CACHE
+# =========================
+phase1_data/cache/
+phase1_data/tmp/
+
+# =========================
+# SECURITY
+# =========================
+*.pem
+*.key

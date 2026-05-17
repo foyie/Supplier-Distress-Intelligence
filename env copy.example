@@ -1,0 +1,22 @@
+# ── Database ──────────────────────────────────────────────
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=supplier_distress
+DB_USER=postgres
+DB_PASSWORD=your_password_here
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=supplier_distress
+DB_USER=app_user
+DB_PASSWORD=test123
+
+# ── API Keys ──────────────────────────────────────────────
+NEWS_API_KEY=your_newsapi_key_here          # https://newsapi.org  (free tier: 100 req/day)
+PROXYCURL_API_KEY=your_proxycurl_key_here  # https://proxycurl.com (paid, ~$0.01/call)
+
+# ── Paths ─────────────────────────────────────────────────
+RAW_DATA_DIR=data/raw
+PROCESSED_DATA_DIR=data/processed
+MODELS_DIR=models
+MLFLOW_TRACKING_URI=http://localhost:5000
