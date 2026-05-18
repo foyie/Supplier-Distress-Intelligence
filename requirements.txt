@@ -41,3 +41,6 @@ plotly==5.22.0
 # ── Compatibility ─────────────────────────────────────────
 protobuf==4.25.9
 packaging<25
+
+fastapi==0.111.0
+uvicorn[standard]==0.30.1
