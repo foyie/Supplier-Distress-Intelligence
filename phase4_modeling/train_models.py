@@ -47,6 +47,25 @@ mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI", "http://127.0.0.1:5000"
 # ─────────────────────────────────────────────────────────
 # Feature column sets
 # ─────────────────────────────────────────────────────────
+# CURRENT_FEATURES = [
+#     "headcount", "headcount_mom_pct", "headcount_3m_trend",
+#     "job_postings_total", "job_postings_mom_pct",
+#     "pct_ops_finance_roles", "pct_senior_roles",
+#     "glassdoor_rating", "glassdoor_rating_mom",
+#     "news_sentiment_score", "news_volume", "distress_keyword_score",
+#     "revenue_qoq_pct", "cash_ratio", "debt_to_equity",
+#     "operating_margin", "interest_coverage",
+# ]
+
+# FORECAST_FEATURES = [
+#     "headcount_forecast",
+#     "glassdoor_rating_forecast",
+#     "cash_ratio_forecast",
+#     "debt_to_equity_forecast",
+#     "news_sentiment_score_forecast",
+#     "distress_keyword_score_forecast",
+#     "pct_ops_finance_roles_forecast",
+# ]
 CURRENT_FEATURES = [
     "headcount", "headcount_mom_pct", "headcount_3m_trend",
     "job_postings_total", "job_postings_mom_pct",
@@ -66,6 +85,8 @@ FORECAST_FEATURES = [
     "distress_keyword_score_forecast",
     "pct_ops_finance_roles_forecast",
 ]
+
+# FEATURE_COLS = CURRENT_FEATURES + FORECAST_FEATURES
 
 ALL_FEATURES = CURRENT_FEATURES + FORECAST_FEATURES
 

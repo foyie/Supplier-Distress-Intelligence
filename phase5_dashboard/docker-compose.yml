@@ -1,0 +1,66 @@
+version: '3.9'
+
+services:
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: supplierwatch-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Mount data directories from the project root
+      - ../../data:/app/data:ro
+      - ../../models:/app/models:ro
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_NAME=supplier_distress
+      - DB_USER=postgres
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+    depends_on:
+      - postgres
+    restart: unless-stopped
+
+  frontend:
+    image: node:20-alpine
+    container_name: supplierwatch-ui
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install && npm run dev -- --host"
+    environment:
+      - VITE_API_BASE=http://backend:8000
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: supplierwatch-db
+    environment:
+      POSTGRES_DB: supplier_distress
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.13.2
+    container_name: supplierwatch-mlflow
+    ports:
+      - "5001:5000"
+    volumes:
+      - ../../models/mlflow:/mlflow
+    command: mlflow server --host 0.0.0.0 --port 5000 --backend-store-uri /mlflow
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
