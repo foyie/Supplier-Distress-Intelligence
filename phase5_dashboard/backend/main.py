@@ -111,32 +111,8 @@ def startup_event():
 # ─────────────────────────────────────────────────────────
 # Helper: compute risk score from latest features
 # ─────────────────────────────────────────────────────────
-# FEATURE_COLS = [
-#     "headcount", "headcount_mom_pct", "headcount_3m_trend",
-#     "job_postings_total", "job_postings_mom_pct",
-#     "pct_ops_finance_roles", "pct_senior_roles",
-#     "glassdoor_rating", "glassdoor_rating_mom",
-#     "news_sentiment_score", "news_volume", "distress_keyword_score",
-#     "revenue_qoq_pct", "cash_ratio", "debt_to_equity",
-#     "operating_margin", "interest_coverage",
-# ]
-FEATURE_COLS = [
-    "headcount", "headcount_mom_pct", "headcount_3m_trend",
-    "job_postings_total", "job_postings_mom_pct",
-    "pct_ops_finance_roles", "pct_senior_roles",
-    "glassdoor_rating", "glassdoor_rating_mom",
-    "news_sentiment_score", "news_volume", "distress_keyword_score",
-    "revenue_qoq_pct", "cash_ratio", "debt_to_equity",
-    "operating_margin", "interest_coverage",
-    # Forecasted features
-    "headcount_forecast",
-    "glassdoor_rating_forecast",
-    "cash_ratio_forecast",
-    "debt_to_equity_forecast",
-    "news_sentiment_score_forecast",
-    "distress_keyword_score_forecast",
-    "pct_ops_finance_roles_forecast",
-]
+FEATURE_COLS = ['headcount', 'headcount_mom_pct', 'headcount_3m_trend', 'job_postings_total', 'job_postings_mom_pct', 'pct_ops_finance_roles', 'pct_senior_roles', 'glassdoor_rating', 'glassdoor_rating_mom', 'news_sentiment_score', 'news_volume', 'distress_keyword_score', 'revenue_qoq_pct', 'cash_ratio', 'debt_to_equity', 'operating_margin', 'interest_coverage', 'headcount_forecast', 'glassdoor_rating_forecast', 'cash_ratio_forecast', 'debt_to_equity_forecast', 'news_sentiment_score_forecast', 'distress_keyword_score_forecast', 'pct_ops_finance_roles_forecast']
+
 def get_risk_tier(score: float) -> str:
     if score >= 0.65:  return "CRITICAL"
     if score >= 0.45:  return "HIGH"
@@ -409,22 +385,44 @@ def get_shap(company_id: int):
     try:
         import shap as shap_lib
         feat_cols = [c for c in FEATURE_COLS if c in rows.columns]
+
+        if not feat_cols:
+            return {"shap_values": [], "error": "No features found in data"}
+
         latest    = rows.iloc[-1][feat_cols].values.reshape(1, -1)
         latest    = np.nan_to_num(latest, nan=0.0)
 
         explainer   = shap_lib.TreeExplainer(model)
-        shap_values = explainer.shap_values(latest)[0]
+        shap_values_raw = explainer.shap_values(latest)
+
+        # Handle different return types from SHAP
+        if isinstance(shap_values_raw, list):
+            shap_values = shap_values_raw[0] if shap_values_raw else np.array([])
+        elif isinstance(shap_values_raw, np.ndarray):
+            if len(shap_values_raw.shape) > 1:
+                shap_values = shap_values_raw[0]
+            else:
+                shap_values = shap_values_raw
+        else:
+            shap_values = shap_values_raw
+
+        if len(shap_values) == 0:
+            return {"shap_values": [], "error": "SHAP returned empty values"}
 
         result = sorted([
             {"feature": feat_cols[i], "value": round(float(shap_values[i]), 5)}
-            for i in range(len(feat_cols))
+            for i in range(min(len(feat_cols), len(shap_values)))
         ], key=lambda x: abs(x["value"]), reverse=True)
 
-        return {"shap_values": result[:15]}
+        return {"shap_values": result[:15], "company_id": company_id}
     except Exception as e:
+        import traceback
+        error_msg = f"{type(e).__name__}: {str(e)[:150]}"
+        print(f"⚠ SHAP error for company {company_id}: {error_msg}")
+        traceback.print_exc()
         return {
             "shap_values": [],
-            "error": f"SHAP computation failed: {str(e)[:100]}"
+            "error": error_msg
         }
 
 

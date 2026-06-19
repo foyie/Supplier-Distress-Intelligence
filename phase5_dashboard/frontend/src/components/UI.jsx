@@ -2,164 +2,162 @@
 
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 
-/* ── Skeleton loader ─────────────────────────────────── */
-export function Skeleton({ width = '100%', height = 16, style = {} }) {
+/* ── Skeleton ─────────────────────────────────────────── */
+export function Skel({ w = '100%', h = 14, style = {} }) {
+  return <div className="skel" style={{ width: w, height: h, ...style }} />
+}
+
+/* ── Risk indicator (dot + label, no pill) ─────────────── */
+export function RiskIndicator({ tier, showLabel = true }) {
   return (
-    <div className="skeleton" style={{ width, height, ...style }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+      <span className={`risk-dot dot-${tier}`} />
+      {showLabel && (
+        <span className={`risk-label risk-${tier}`}>{tier}</span>
+      )}
+    </div>
   )
 }
 
-/* ── Tier badge ──────────────────────────────────────── */
-export function TierBadge({ tier }) {
-  return (
-    <span className={`tier-badge tier-${tier}`}>{tier}</span>
-  )
-}
-
-/* ── Score pill ──────────────────────────────────────── */
-export function ScorePill({ score, tier }) {
-  const colors = {
-    CRITICAL: '#FF3B3B', HIGH: '#FF6B35',
-    MEDIUM: '#F5C518',   LOW: '#22C55E',
-  }
+/* ── Score number ─────────────────────────────────────── */
+export function ScoreNum({ score, tier }) {
+  const colors = { CRITICAL: 'var(--red)', HIGH: 'var(--orange)', MEDIUM: 'var(--yellow)', LOW: 'var(--green)' }
   return (
     <span style={{
-      fontFamily: 'var(--font-mono)',
+      fontFamily: 'var(--f-mono)',
       fontSize: 13,
-      fontWeight: 500,
-      color: colors[tier] || '#888',
+      fontWeight: 600,
+      color: colors[tier] || 'var(--t2)',
+      letterSpacing: '0.03em',
     }}>
       {score?.toFixed(1)}
     </span>
   )
 }
 
-/* ── Delta indicator ─────────────────────────────────── */
+/* ── Delta ────────────────────────────────────────────── */
 export function Delta({ value }) {
-  if (value == null) return <span style={{ color: 'var(--text-muted)' }}>—</span>
-  const up   = value > 0
-  const down = value < 0
+  if (value == null) return <span className="delta-flat">—</span>
+  const cls = value > 0.5 ? 'delta-up' : value < -0.5 ? 'delta-down' : 'delta-flat'
+  const Icon = value > 0.5 ? TrendingUp : value < -0.5 ? TrendingDown : Minus
   return (
-    <span style={{
-      display: 'inline-flex', alignItems: 'center', gap: 3,
-      fontFamily: 'var(--font-mono)', fontSize: 11,
-      color: up ? '#FF3B3B' : down ? '#22C55E' : 'var(--text-muted)',
-    }}>
-      {up   ? <TrendingUp  size={11} /> : null}
-      {down ? <TrendingDown size={11} /> : null}
-      {!up && !down ? <Minus size={11} /> : null}
-      {up ? '+' : ''}{value?.toFixed(1)}
+    <span className={cls} style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+      <Icon size={10} />
+      {value > 0 ? '+' : ''}{value?.toFixed(1)}
     </span>
   )
 }
 
-/* ── Signal bar ──────────────────────────────────────── */
-export function SignalBar({ value, max = 1, color = 'var(--amber)' }) {
-  const pct = Math.min(100, Math.max(0, (value / max) * 100))
+/* ── Eyebrow label ────────────────────────────────────── */
+export function Eyebrow({ children, style = {} }) {
   return (
-    <div className="signal-bar-track">
-      <div className="signal-bar-fill" style={{ width: `${pct}%`, background: color }} />
+    <div className="eyebrow" style={style}>{children}</div>
+  )
+}
+
+/* ── Section title ────────────────────────────────────── */
+export function SectionTitle({ label, right }) {
+  return (
+    <div className="flex items-c justify-b mb-16">
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ width: 2, height: 14, background: 'var(--cyan)', borderRadius: 1 }} />
+        <Eyebrow>{label}</Eyebrow>
+      </div>
+      {right}
     </div>
   )
 }
 
-/* ── Section header ──────────────────────────────────── */
-export function SectionHeader({ label, children }) {
-  return (
-    <div className="flex items-center justify-between mb-16">
-      <span style={{
-        fontFamily: 'var(--font-mono)',
-        fontSize: 10,
-        fontWeight: 500,
-        letterSpacing: '0.12em',
-        textTransform: 'uppercase',
-        color: 'var(--text-muted)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-      }}>
-        <span style={{
-          display: 'inline-block', width: 20, height: 1,
-          background: 'var(--amber)', opacity: 0.6,
-        }} />
-        {label}
-      </span>
-      {children}
-    </div>
-  )
-}
-
-/* ── Empty state ─────────────────────────────────────── */
-export function EmptyState({ message = 'No data available' }) {
+/* ── Empty state ──────────────────────────────────────── */
+export function Empty({ message }) {
   return (
     <div style={{
-      padding: '48px 24px',
-      textAlign: 'center',
-      color: 'var(--text-muted)',
-      fontFamily: 'var(--font-mono)',
-      fontSize: 12,
+      padding: '52px 24px', textAlign: 'center',
+      fontFamily: 'var(--f-mono)', fontSize: 11,
+      color: 'var(--t3)',
+      letterSpacing: '0.05em',
     }}>
-      {message}
+      {message || 'No data available'}
     </div>
   )
 }
 
-/* ── Recharts custom tooltip ─────────────────────────── */
-export function ChartTooltip({ active, payload, label, formatter }) {
+/* ── Inline sparkline (SVG) ────────────────────────────── */
+export function Sparkline({ data = [], color = 'var(--cyan)', width = 80, height = 28 }) {
+  if (!data || data.length < 2) {
+    return <div style={{ width, height, opacity: 0.2, background: 'var(--line)' }} />
+  }
+
+  const vals = data.filter(v => v != null && !isNaN(v))
+  if (vals.length < 2) return null
+
+  const min = Math.min(...vals)
+  const max = Math.max(...vals)
+  const range = max - min || 1
+  const pad = 2
+
+  const pts = vals.map((v, i) => {
+    const x = pad + (i / (vals.length - 1)) * (width - pad * 2)
+    const y = pad + ((1 - (v - min) / range) * (height - pad * 2))
+    return `${x},${y}`
+  })
+
+  const polyline = pts.join(' ')
+  const last = pts[pts.length - 1].split(',')
+  const isUp = vals[vals.length - 1] > vals[0]
+  const lineColor = color === 'auto' ? (isUp ? 'var(--red)' : 'var(--green)') : color
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+      <polyline
+        points={polyline}
+        fill="none"
+        stroke={lineColor}
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        opacity="0.9"
+      />
+      {/* Last point dot */}
+      <circle
+        cx={last[0]} cy={last[1]} r="2.5"
+        fill={lineColor}
+      />
+    </svg>
+  )
+}
+
+/* ── Recharts tooltip ─────────────────────────────────── */
+export function CTooltip({ active, payload, label, fmt }) {
   if (!active || !payload?.length) return null
   return (
-    <div style={{
-      background: 'var(--bg-elevated)',
-      border: '1px solid var(--border-bright)',
-      borderRadius: 8,
-      padding: '10px 14px',
-      fontFamily: 'var(--font-mono)',
-      fontSize: 12,
-    }}>
-      <div style={{ color: 'var(--text-muted)', marginBottom: 6, fontSize: 11 }}>{label}</div>
+    <div className="ct">
+      <div style={{ color: 'var(--t2)', marginBottom: 5, fontSize: 10 }}>{label}</div>
       {payload.map((p, i) => (
-        <div key={i} style={{ color: p.color || 'var(--text-primary)', marginBottom: 2 }}>
-          {p.name}: <strong>{formatter ? formatter(p.value) : p.value?.toFixed?.(3) ?? p.value}</strong>
+        <div key={i} style={{ color: p.color || 'var(--t1)', marginBottom: 2 }}>
+          <span style={{ color: 'var(--t2)', marginRight: 6 }}>{p.name}</span>
+          <strong>{fmt ? fmt(p.value) : (typeof p.value === 'number' ? p.value.toFixed(3) : p.value)}</strong>
         </div>
       ))}
     </div>
   )
 }
 
-/* ── Stat card ───────────────────────────────────────── */
-export function StatCard({ label, value, sub, icon: Icon, accent }) {
+/* ── Metric tile ──────────────────────────────────────── */
+export function MetricTile({ label, value, unit = '', good, icon: Icon, accent }) {
+  const color = good === true ? 'var(--green)' : good === false ? 'var(--red)' : accent || 'var(--t1)'
   return (
-    <div className="stat-card">
-      <div className="flex items-center justify-between mb-8">
-        <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: 10,
-          letterSpacing: '0.1em', textTransform: 'uppercase',
-          color: 'var(--text-muted)',
-        }}>{label}</span>
-        {Icon && (
-          <div style={{
-            width: 28, height: 28, borderRadius: 7,
-            background: accent ? `${accent}18` : 'var(--bg-elevated)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Icon size={13} color={accent || 'var(--text-muted)'} />
-          </div>
-        )}
+    <div className="metric-tile">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <Eyebrow>{label}</Eyebrow>
+        {Icon && <Icon size={12} color="var(--t3)" />}
       </div>
-      <div style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 28,
-        fontWeight: 700,
-        color: accent || 'var(--text-primary)',
-        lineHeight: 1,
-        letterSpacing: '-1px',
-      }}>{value ?? '—'}</div>
-      {sub && (
-        <div style={{
-          marginTop: 6, fontSize: 12,
-          color: 'var(--text-secondary)',
-        }}>{sub}</div>
-      )}
+      <div className="metric-value" style={{ color }}>
+        {value != null
+          ? (typeof value === 'number' ? value.toFixed(2) : value) + unit
+          : <span style={{ color: 'var(--t3)', fontSize: 16 }}>—</span>
+        }
+      </div>
     </div>
   )
 }

@@ -1,173 +1,166 @@
 import { useParams } from 'react-router-dom'
 import { useState } from 'react'
 import {
-  FileText, Zap, BarChart2, TrendingUp,
-  Activity, Users, Newspaper, DollarSign,
-  AlertTriangle, Download,
+  Activity, TrendingUp, BarChart2, FileText,
+  Users, Newspaper, DollarSign, AlertTriangle,
+  Download, ArrowUpRight,
 } from 'lucide-react'
 import { useApi } from '../hooks/useApi'
 import { api } from '../utils/api'
 import {
-  TierBadge, SectionHeader, Skeleton, EmptyState, ChartTooltip,
+  RiskIndicator, Skel, Empty, MetricTile,
+  Eyebrow, SectionTitle,
 } from '../components/UI'
-import {
-  SignalTimelineChart,
-  ForecastChart,
-  ShapWaterfall,
-} from '../components/Charts'
+import { SignalTimelineChart, ForecastChart, ShapWaterfall } from '../components/Charts'
 
-/* ── Risk gauge ──────────────────────────────────────── */
-function RiskGauge({ score, tier }) {
-  const colors = {
-    CRITICAL: '#FF3B3B', HIGH: '#FF6B35',
-    MEDIUM: '#F5C518', LOW: '#22C55E',
-  }
-  const color   = colors[tier] || '#888'
-  const radius  = 70
-  const stroke  = 8
-  const circ    = 2 * Math.PI * radius
-  const half    = circ / 2
-  const dashoff = half - (score / 100) * half
+/* ── SVG Arc Gauge ────────────────────────────────────── */
+function ArcGauge({ score = 0, tier }) {
+  const colors = { CRITICAL:'#FF4545', HIGH:'#FF7A35', MEDIUM:'#FFD166', LOW:'#22C55E' }
+  const color  = colors[tier] || '#344556'
+  const R = 80, SW = 10
+  const circ = Math.PI * R        // half circle arc length
+  const fill = (score / 100) * circ
+  const cx = 100, cy = 92
 
   return (
-    <div style={{ textAlign: 'center', padding: '8px 0' }}>
-      <svg width="180" height="100" viewBox="0 0 180 100">
+    <div style={{ textAlign: 'center' }}>
+      <svg width="200" height="110" viewBox="0 0 200 110">
         {/* Track */}
         <path
-          d={`M ${90 - radius} 90 A ${radius} ${radius} 0 0 1 ${90 + radius} 90`}
-          fill="none" stroke="var(--bg-elevated)" strokeWidth={stroke}
+          d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`}
+          fill="none"
+          stroke="var(--raised)"
+          strokeWidth={SW}
           strokeLinecap="round"
         />
         {/* Fill */}
         <path
-          d={`M ${90 - radius} 90 A ${radius} ${radius} 0 0 1 ${90 + radius} 90`}
-          fill="none" stroke={color} strokeWidth={stroke}
+          d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy}`}
+          fill="none"
+          stroke={color}
+          strokeWidth={SW}
           strokeLinecap="round"
-          strokeDasharray={`${half} ${half}`}
-          strokeDashoffset={dashoff}
-          style={{ transition: 'stroke-dashoffset 1s cubic-bezier(0.4,0,0.2,1)', transformOrigin: '90px 90px' }}
+          strokeDasharray={`${fill} ${circ}`}
+          style={{
+            filter: `drop-shadow(0 0 6px ${color}88)`,
+            transition: 'stroke-dasharray 1s cubic-bezier(0.4,0,0.2,1)',
+          }}
         />
-        {/* Score text */}
-        <text x="90" y="78" textAnchor="middle"
-          style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, fill: color }}
+        {/* Score */}
+        <text x={cx} y={cy - 14} textAnchor="middle"
+          style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 34, fontWeight: 700, fill: color, letterSpacing: '-1px' }}
         >
           {score?.toFixed(0)}
         </text>
-        <text x="90" y="95" textAnchor="middle"
-          style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fill: 'var(--text-muted)' }}
+        <text x={cx} y={cy + 2} textAnchor="middle"
+          style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 8, fill: 'var(--t3)', letterSpacing: '0.14em' }}
         >
-          RISK SCORE
+          RISK SCORE / 100
         </text>
       </svg>
     </div>
   )
 }
 
-/* ── Signal metric card ──────────────────────────────── */
-function SignalMetric({ label, value, unit = '', good = null, icon: Icon }) {
-  let color = 'var(--text-primary)'
-  if (good !== null && value != null) {
-    color = good ? 'var(--green-low)' : 'var(--red-critical)'
-  }
+/* ── Horizontal signal bar ────────────────────────────── */
+function SignalRow({ label, value, max = 1, good, format }) {
+  const pct = Math.min(100, Math.max(0, (Math.abs(value || 0) / max) * 100))
+  const color = good === true ? 'var(--green)' : good === false ? 'var(--red)' : 'var(--cyan)'
+  const displayVal = format ? format(value) : value?.toFixed?.(2) ?? '—'
+
   return (
-    <div style={{
-      background: 'var(--bg-elevated)',
-      borderRadius: 10, padding: '14px 16px',
-      border: '1px solid var(--border)',
-    }}>
-      <div className="flex items-center gap-8 mb-8">
-        {Icon && <Icon size={12} color="var(--text-muted)" />}
-        <span style={{
-          fontFamily: 'var(--font-mono)', fontSize: 10,
-          textTransform: 'uppercase', letterSpacing: '0.1em',
-          color: 'var(--text-muted)',
-        }}>{label}</span>
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+        <span style={{ fontFamily: 'var(--f-mono)', fontSize: 10, color: 'var(--t3)', letterSpacing: '0.06em' }}>
+          {label}
+        </span>
+        <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color }}>
+          {value != null ? displayVal : '—'}
+        </span>
       </div>
-      <div style={{
-        fontFamily: 'var(--font-display)', fontSize: 22,
-        fontWeight: 700, color, letterSpacing: '-0.5px',
-      }}>
-        {value != null ? `${typeof value === 'number' ? value.toFixed(2) : value}${unit}` : '—'}
+      <div style={{ height: 3, background: 'var(--raised)', borderRadius: 2, overflow: 'hidden' }}>
+        <div style={{
+          height: '100%', width: `${pct}%`,
+          background: color, borderRadius: 2,
+          transition: 'width 0.8s cubic-bezier(0.4,0,0.2,1)',
+          boxShadow: value != null ? `0 0 4px ${color}66` : 'none',
+        }} />
       </div>
     </div>
   )
 }
 
-/* ── Analyst brief panel ─────────────────────────────── */
+/* ── Analyst brief panel ──────────────────────────────── */
 function AnalystBrief({ brief }) {
-  if (!brief) return null
-  const tierColors = {
-    CRITICAL: '#FF3B3B', HIGH: '#FF6B35',
-    MEDIUM: '#F5C518', LOW: '#22C55E',
-  }
+  if (!brief) return <Empty message="Brief unavailable" />
+
+  const tierColors = { CRITICAL:'#FF4545', HIGH:'#FF7A35', MEDIUM:'#FFD166', LOW:'#22C55E' }
+  const color = tierColors[brief.risk_tier] || 'var(--t2)'
 
   return (
-    <div style={{
-      background: 'var(--bg-surface)',
-      border: `1px solid ${tierColors[brief.risk_tier] || 'var(--border)'}44`,
-      borderRadius: 12, padding: 24,
-    }}>
+    <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-16">
+      <div style={{
+        display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+        marginBottom: 20,
+      }}>
         <div>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: 10,
-            letterSpacing: '0.12em', textTransform: 'uppercase',
-            color: 'var(--text-muted)', marginBottom: 4,
-          }}>
-            ANALYST BRIEF · {brief.generated_at}
+          <Eyebrow style={{ marginBottom: 6 }}>
+            Procurement Risk Brief · {brief.generated_at}
+          </Eyebrow>
+          <h2 style={{ fontSize: 20, letterSpacing: '-0.3px' }}>{brief.company_name}</h2>
+          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <RiskIndicator tier={brief.risk_tier} />
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--t3)' }}>
+              Score: {brief.risk_score?.toFixed(1)}
+            </span>
           </div>
-          <h3 style={{ fontFamily: 'var(--font-display)', fontSize: 18 }}>
-            {brief.company_name}
-          </h3>
         </div>
-        <div className="flex items-center gap-8">
-          <TierBadge tier={brief.risk_tier} />
-          <button className="btn btn-ghost" style={{ padding: '6px 12px', fontSize: 12 }}>
-            <Download size={12} />
-            Export
-          </button>
-        </div>
+        <button className="btn btn-ghost" style={{ fontSize: 11 }}>
+          <Download size={11} /> Export PDF
+        </button>
       </div>
 
       {/* Signals */}
       {brief.signal_summary?.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: 10,
-            textTransform: 'uppercase', letterSpacing: '0.1em',
-            color: 'var(--text-muted)', marginBottom: 10,
-          }}>Key Signals</div>
+        <>
+          <Eyebrow style={{ marginBottom: 10 }}>Active Signals</Eyebrow>
           {brief.signal_summary.map((s, i) => (
-            <div key={i} className="flex items-center gap-8" style={{ marginBottom: 7 }}>
-              <AlertTriangle size={11} color={tierColors[brief.risk_tier]} />
-              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{s}</span>
+            <div key={i} className="brief-signal">
+              <div style={{
+                width: 4, height: 4, borderRadius: '50%',
+                background: color, marginTop: 5, flexShrink: 0,
+              }} />
+              <span>{s}</span>
             </div>
           ))}
-        </div>
+        </>
       )}
 
-      {/* Divider */}
-      <div className="divider" style={{ margin: '16px 0' }} />
+      <div className="hr mt-16 mb-16" />
 
       {/* Recommendation */}
-      <div>
-        <div style={{
-          fontFamily: 'var(--font-mono)', fontSize: 10,
-          textTransform: 'uppercase', letterSpacing: '0.1em',
-          color: 'var(--text-muted)', marginBottom: 8,
-        }}>Recommendation</div>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-          {brief.recommendation}
-        </p>
+      <Eyebrow style={{ marginBottom: 10 }}>Recommendation</Eyebrow>
+      <div style={{
+        background: `${color}0C`,
+        border: `1px solid ${color}25`,
+        borderLeft: `3px solid ${color}`,
+        borderRadius: '0 8px 8px 0',
+        padding: '14px 16px',
+        fontSize: 13,
+        color: 'var(--t2)',
+        lineHeight: 1.7,
+      }}>
+        {brief.recommendation}
       </div>
+
+      <div className="hr mt-16 mb-12" />
 
       {/* Disclaimer */}
       <div style={{
-        marginTop: 16, padding: '8px 12px',
-        background: 'var(--bg-elevated)', borderRadius: 6,
-        fontSize: 11, color: 'var(--text-muted)',
-        fontFamily: 'var(--font-mono)',
+        fontFamily: 'var(--f-mono)', fontSize: 9,
+        color: 'var(--t3)', letterSpacing: '0.05em',
+        lineHeight: 1.6,
       }}>
         {brief.disclaimer}
       </div>
@@ -175,181 +168,150 @@ function AnalystBrief({ brief }) {
   )
 }
 
-/* ── Tab switcher ────────────────────────────────────── */
+/* ── Tab config ───────────────────────────────────────── */
 const TABS = [
-  { key: 'signals',  label: 'Signal Timeline', icon: Activity },
-  { key: 'forecast', label: 'Forecast',         icon: TrendingUp },
-  { key: 'shap',     label: 'SHAP Analysis',    icon: BarChart2 },
-  { key: 'brief',    label: 'Analyst Brief',    icon: FileText },
+  { key: 'signals',  label: 'Signal History', icon: Activity },
+  { key: 'forecast', label: '6M Forecast',    icon: TrendingUp },
+  { key: 'shap',     label: 'SHAP Analysis',  icon: BarChart2 },
+  { key: 'brief',    label: 'Analyst Brief',  icon: FileText },
 ]
 
-/* ══ Main page ═══════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   Main page
+══════════════════════════════════════════════════════ */
 export default function CompanyDetail() {
-  const { id } = useParams()
-  const [activeTab, setActiveTab] = useState('signals')
+  const { id }       = useParams()
+  const [tab, setTab] = useState('signals')
 
-  const { data: company, loading: compLoading } = useApi(() => api.company(id),    [id])
-  const { data: signals, loading: sigLoading }  = useApi(() => api.signals(id),    [id])
-  const { data: forecast,loading: fcLoading }   = useApi(() => api.forecast(id),   [id])
-  const { data: shapData, loading: shapLoading} = useApi(() => api.shap(id),       [id])
-  const { data: brief,   loading: briefLoading} = useApi(() => api.brief(id),      [id])
+  const { data: company, loading: cl } = useApi(() => api.company(id),  [id])
+  const { data: signals, loading: sl } = useApi(() => api.signals(id),  [id])
+  const { data: forecast,loading: fl } = useApi(() => api.forecast(id), [id])
+  const { data: shapData,loading: hl } = useApi(() => api.shap(id),     [id])
+  const { data: brief,   loading: bl } = useApi(() => api.brief(id),    [id])
 
-  if (compLoading) {
-    return (
-      <div style={{ padding: 32 }}>
-        <Skeleton height={32} width={300} style={{ marginBottom: 16 }} />
-        <div className="grid-2"><Skeleton height={200} /><Skeleton height={200} /></div>
+  if (cl) return (
+    <div style={{ padding: 24 }}>
+      <Skel w={280} h={28} style={{ marginBottom: 16 }} />
+      <div style={{ display: 'grid', gridTemplateColumns:'1fr 1fr', gap: 16 }}>
+        <Skel h={200} /><Skel h={200} />
       </div>
-    )
-  }
-  if (!company) return <EmptyState message="Company not found" />
+    </div>
+  )
+  if (!company) return <Empty message="Company not found" />
 
   const risk = company.risk || {}
   const sig  = company.latest_signals || {}
 
   return (
-    <div style={{ animation: 'fadeUp 0.35s ease both' }}>
+    <div className="fade-up">
 
       {/* ── Company header ──────────────────────────────── */}
       <div style={{
-        marginBottom: 28,
-        padding: '24px',
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 12,
         display: 'grid',
         gridTemplateColumns: '1fr auto',
         gap: 24,
-        alignItems: 'center',
+        alignItems: 'start',
+        background: 'var(--surface)',
+        border: '1px solid var(--line)',
+        borderRadius: 10,
+        padding: '24px 28px',
+        marginBottom: 20,
       }}>
         <div>
-          <div className="flex items-center gap-12 mb-8">
-            <TierBadge tier={risk.tier} />
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: 11,
-              color: 'var(--text-muted)',
-            }}>
-              {company.sector} · {company.industry}
-            </span>
+          {/* Sector eyebrow */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <Eyebrow>{company.sector}</Eyebrow>
+            <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--t3)' }} />
+            <Eyebrow>{company.industry}</Eyebrow>
           </div>
-          <h1 style={{ fontSize: 30, letterSpacing: '-0.8px', marginBottom: 8 }}>
+
+          <h1 style={{ fontSize: 26, letterSpacing: '-0.5px', marginBottom: 12 }}>
             {company.name}
           </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 13, maxWidth: 500 }}>
-            Distress probability modeled from {' '}
-            <span className="text-amber">NLP signals</span>,
-            {' '}<span className="text-amber">financial ratios</span>, and
-            {' '}<span className="text-amber">6-month signal forecasts</span>.
-          </p>
+
+          {/* Risk status row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+            <RiskIndicator tier={risk.tier} />
+            <span style={{ width: 1, height: 14, background: 'var(--line)' }} />
+            <span style={{ fontFamily: 'var(--f-mono)', fontSize: 11, color: 'var(--t3)' }}>
+              MoM Δ{' '}
+              <span style={{ color: risk.delta > 0 ? 'var(--red)' : 'var(--green)' }}>
+                {risk.delta > 0 ? '+' : ''}{risk.delta?.toFixed(1) ?? '—'}
+              </span>
+            </span>
+            <span style={{ width: 1, height: 14, background: 'var(--line)' }} />
+            {company.distress_label && (
+              <span style={{
+                fontFamily: 'var(--f-mono)', fontSize: 9,
+                letterSpacing: '0.1em', textTransform: 'uppercase',
+                color: 'var(--red)', opacity: 0.8,
+              }}>
+                ⬤ Known distress event
+              </span>
+            )}
+          </div>
+
+          {/* Signal bars */}
+          <div style={{ marginTop: 20, maxWidth: 480 }}>
+            <SignalRow label="NEWS SENTIMENT"      value={sig.news_sentiment_score}   max={1}   good={sig.news_sentiment_score > 0} format={v => v?.toFixed(2)} />
+            <SignalRow label="DISTRESS KEYWORDS"   value={sig.distress_keyword_score} max={1}   good={false} format={v => v?.toFixed(3)} />
+            <SignalRow label="CASH RATIO"          value={sig.cash_ratio}             max={3}   good={sig.cash_ratio > 1} />
+            <SignalRow label="OPS/FINANCE ROLES %"  value={sig.pct_ops_finance_roles}  max={1}   good={sig.pct_ops_finance_roles < 0.4} format={v => (v * 100).toFixed(0) + '%'} />
+          </div>
         </div>
-        <RiskGauge score={risk.score} tier={risk.tier} />
+
+        {/* Right: Gauge */}
+        <div>
+          <ArcGauge score={risk.score} tier={risk.tier} />
+        </div>
       </div>
 
-      {/* ── Key signal metrics ──────────────────────────── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 12, marginBottom: 24,
-      }}>
-        <SignalMetric
-          label="Headcount Δ" icon={Users}
-          value={sig.headcount_mom_pct}
-          unit="%" good={sig.headcount_mom_pct > 0}
-        />
-        <SignalMetric
-          label="News Sentiment" icon={Newspaper}
-          value={sig.news_sentiment_score}
-          good={sig.news_sentiment_score > 0}
-        />
-        <SignalMetric
-          label="Cash Ratio" icon={DollarSign}
-          value={sig.cash_ratio}
-          good={sig.cash_ratio > 1.0}
-        />
-        <SignalMetric
-          label="Distress Keywords" icon={AlertTriangle}
-          value={sig.distress_keyword_score}
-          good={sig.distress_keyword_score < 0.3}
-        />
+      {/* ── Metric tiles ─────────────────────────────────── */}
+      <div className="grid-4 mb-20">
+        <MetricTile label="Headcount Δ%"     value={sig.headcount_mom_pct}     unit="%" good={sig.headcount_mom_pct > 0}    icon={Users} />
+        <MetricTile label="Debt / Equity"    value={sig.debt_to_equity}                 good={sig.debt_to_equity < 2}       icon={DollarSign} />
+        <MetricTile label="Operating Margin" value={sig.operating_margin}      unit="%" good={sig.operating_margin > 0}     icon={TrendingUp} />
+        <MetricTile label="News Volume"      value={sig.news_volume}                                                          icon={Newspaper} />
       </div>
 
-      {/* ── Secondary metrics ───────────────────────────── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: 12, marginBottom: 28,
-      }}>
-        <SignalMetric label="Debt / Equity"      value={sig.debt_to_equity}     good={sig.debt_to_equity < 2} />
-        <SignalMetric label="Operating Margin"   value={sig.operating_margin}   unit="" good={sig.operating_margin > 0} />
-        <SignalMetric label="Ops/Finance Roles %" value={sig.pct_ops_finance_roles != null ? (sig.pct_ops_finance_roles * 100).toFixed(1) : null} unit="%" good={sig.pct_ops_finance_roles < 0.4} />
-        <SignalMetric label="Headcount"          value={sig.headcount} />
-      </div>
+      {/* ── Tabs ─────────────────────────────────────────── */}
+      <div className="card">
+        <div className="card-head" style={{ padding: 0 }}>
+          <div className="tab-bar" style={{ margin: 0, width: '100%', padding: '0 18px' }}>
+            {TABS.map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => setTab(key)}
+                className={`tab-btn ${tab === key ? 'active' : ''}`}
+              >
+                <Icon size={12} />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      {/* ── Tab navigation ──────────────────────────────── */}
-      <div style={{
-        display: 'flex', gap: 4, marginBottom: 20,
-        borderBottom: '1px solid var(--border)',
-        paddingBottom: 0,
-      }}>
-        {TABS.map(({ key, label, icon: Icon }) => (
-          <button
-            key={key}
-            onClick={() => setActiveTab(key)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 7,
-              padding: '10px 16px',
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontFamily: 'var(--font-body)', fontSize: 13,
-              fontWeight: activeTab === key ? 600 : 400,
-              color: activeTab === key ? 'var(--amber)' : 'var(--text-secondary)',
-              borderBottom: activeTab === key ? '2px solid var(--amber)' : '2px solid transparent',
-              marginBottom: -1,
-              transition: 'all 0.15s',
-            }}
-          >
-            <Icon size={13} />
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* ── Tab content ─────────────────────────────────── */}
-      <div className="card" style={{ minHeight: 320 }}>
-        <div className="card-body">
-
-          {/* Signal timeline */}
-          {activeTab === 'signals' && (
-            sigLoading
-              ? <Skeleton height={280} />
-              : <SignalTimelineChart data={signals || []} />
+        <div className="card-body" style={{ minHeight: 300 }}>
+          {tab === 'signals' && (
+            sl ? <Skel h={260} /> : <SignalTimelineChart data={signals || []} />
           )}
-
-          {/* Forecast */}
-          {activeTab === 'forecast' && (
-            fcLoading
-              ? <Skeleton height={280} />
-              : forecast?.forecasts?.length === 0
-                ? <EmptyState message="No forecasts available. Run Phase 3 first." />
-                : <ForecastChart
-                    signals={signals || []}
-                    forecasts={forecast?.forecasts || forecast || []}
-                  />
+          {tab === 'forecast' && (
+            fl ? <Skel h={260} /> : (
+              <ForecastChart
+                signals={signals || []}
+                forecasts={forecast?.forecasts || forecast || []}
+              />
+            )
           )}
-
-          {/* SHAP */}
-          {activeTab === 'shap' && (
-            shapLoading
-              ? <Skeleton height={280} />
-              : shapData?.shap_values?.length === 0
-                ? <EmptyState message="SHAP values not available. Ensure XGBoost model is loaded." />
-                : <ShapWaterfall values={shapData?.shap_values || []} />
+          {tab === 'shap' && (
+            hl ? <Skel h={260} /> : (
+              shapData?.shap_values?.length > 0
+                ? <ShapWaterfall values={shapData.shap_values} />
+                : <Empty message={shapData?.error || 'SHAP values unavailable — ensure model is loaded'} />
+            )
           )}
-
-          {/* Analyst brief */}
-          {activeTab === 'brief' && (
-            briefLoading
-              ? <Skeleton height={280} />
-              : <AnalystBrief brief={brief} />
+          {tab === 'brief' && (
+            bl ? <Skel h={260} /> : <AnalystBrief brief={brief} />
           )}
         </div>
       </div>
