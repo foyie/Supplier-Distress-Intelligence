@@ -5,7 +5,7 @@
 
 Early-warning intelligence system for supply chain risk assessment. Predicts enterprise supplier distress 6 months forward using ensemble machine learning on financial, employment, and news signals.
 
-[Live Demo](http://18.217.251.162/company/16)
+[Live Demo](http://18.217.251.162)
 
 ## Overview
 
@@ -71,7 +71,7 @@ Raw data stored in PostgreSQL. 100+ companies, 36 months history.
 - FastAPI backend serves REST endpoints: /companies (leaderboard), /company/:id (detail), /company/:id/signals (timeline), /company/:id/forecast (6-month projections), /company/:id/shap (feature attribution), /company/:id/brief (auto-generated analyst memo)
 - React frontend with Recharts for interactive charts, SHAP waterfall visualization, analyst brief export
 - Render hosts backend API; Vercel hosts frontend; both auto-deploy on GitHub push
-- [Live Demo](http://18.217.251.162/company/16)
+- [Live Demo](http://18.217.251.162)
 
 ## Installation & Setup
 
@@ -213,23 +213,6 @@ cd phase5_dashboard
 docker-compose up --build
 # http://localhost:3000
 ```
-
-**Public Deployment**
-
-1. Deploy backend to Render: https://render.com
-   - Push phase5_dashboard/backend to GitHub
-   - Connect Render to repo, set Start Command: `uvicorn main:app --host 0.0.0.0 --port 8000`
-   - Add env vars (same as .env)
-   - Get your API URL: `https://supplierwatch-api.onrender.com`
-
-2. Deploy frontend to Vercel: https://vercel.com
-   - Push phase5_dashboard/frontend to GitHub
-   - Import to Vercel, set Build Command: `npm run build`, Output: `dist`
-   - Add env var: `VITE_API_BASE=https://supplierwatch-api.onrender.com`
-   - Deploy
-   - Get your dashboard URL: `https://supplierwatch-dashboard.vercel.app`
-
-See `DEPLOY_PUBLIC_URL.md` for detailed cloud setup.
 
 ## Project Structure
 
