@@ -10,7 +10,7 @@
 
 **Predicts which suppliers in a portfolio will enter financial distress 6 months before it happens**, using NLP signals, time-series forecasting, and survival modeling, deployed as a full-stack risk intelligence dashboard.
 
-🔗 **Live Demo:** `http://18.217.251.162` &nbsp;·&nbsp;
+🔗 [**Live Demo**](http://18.217.251.162)
 ---
 
 ## The Problem
